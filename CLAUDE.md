@@ -1,6 +1,6 @@
 # ROAR — Claude Code 開発ガイド
 
-**最終更新:** 2026-04-04
+**最終更新:** 2026-04-05
 **プロジェクト:** ワークフロー自動化 SaaS「ROAR」
 **開発元:** REQS Lab（丸山侑太）
 
@@ -25,17 +25,24 @@ Phase 1 ✅ 完了
   - ワークフローダッシュボード（/workflows）
   - API: /api/workflows/setup（Supabase保存）
 
+Phase 1.5 ✅ 完了（2026-04-05）← NEW
+  - Activepiecesクローン UIビルダー実装
+  - React Flowキャンバス（/builder/[id]）
+  - ステップノード・設定パネル・ピースセレクター
+  - ワークフロー CRUD API（/api/workflows/）
+  - 実行エンジン（シミュレーション）+ 実行ログ（/runs）
+  - コネクション管理UI（/connections）
+  - 詳細は IMPLEMENTATION.md を参照
+
 Phase 2 🔜 最優先
-  - Supabase: workflow_configs テーブル作成・マイグレーション
-  - 認証（NextAuth.js v5 + Google）との統合
-  - 実際のサービス連携（Nango経由: Gmail, Slack）
-  - ワークフロー実行エンジン（lib/workflows/）
+  - Supabase連携（lib/workflows/store.ts をDB連携に差し替え）
+  - 認証ガード（ビルダーページ）
+  - Nango実連携（本物のSlack/GmailAPI呼び出し）
 
 Phase 3 🔮 実行・自動化
-  - スケジューラー（cron）実装
-  - 実行ログ・実行履歴の記録
+  - Inngest スケジューラー実装
   - Webhook トリガー対応
-  - 管理コンソール
+  - 条件分岐・ループノード
 ```
 
 ---
@@ -45,31 +52,60 @@ Phase 3 🔮 実行・自動化
 ```
 roar/
 │
-├── CLAUDE.md                         ← このファイル
+├── CLAUDE.md                         ← このファイル（開発ガイド）
+├── IMPLEMENTATION.md                 ← 実装詳細ドキュメント ← NEW
 │
 ├── app/                              ← Next.js App Router
 │   ├── page.tsx                      ← テンプレートギャラリー（ホーム）
 │   ├── layout.tsx                    ← グローバルレイアウト（変更禁止）
 │   ├── login/                        ← ログインページ（変更禁止）
 │   ├── onboarding/                   ← オンボーディング（変更禁止）
-│   ├── setup/[templateId]/
-│   │   ├── page.tsx                  ← セットアップページ（サーバー）
-│   │   └── SetupChat.tsx             ← チャットUI（クライアント）
+│   ├── setup/[templateId]/           ← セットアップチャット
 │   ├── workflows/
-│   │   └── page.tsx                  ← ダッシュボード
+│   │   └── page.tsx                  ← ダッシュボード（刷新済み）
+│   ├── builder/                      ← ← NEW
+│   │   └── [id]/page.tsx             ← Activepiecesライクビルダー
+│   ├── runs/                         ← ← NEW
+│   │   └── page.tsx                  ← 実行ログ一覧
+│   ├── connections/                  ← ← NEW
+│   │   └── page.tsx                  ← コネクション管理
 │   └── api/
 │       ├── auth/                     ← 変更禁止
+│       ├── runs/route.ts             ← ← NEW 全実行ログ取得
 │       └── workflows/
+│           ├── route.ts              ← ← 刷新 GET/POST
+│           ├── [id]/route.ts         ← ← 刷新 GET/PUT/DELETE
+│           ├── [id]/trigger/route.ts ← ← 刷新 テスト実行
+│           ├── [id]/runs/route.ts    ← ← 刷新 実行ログ
 │           └── setup/route.ts        ← セットアップ保存API
 │
 ├── components/
 │   ├── WorkflowCard.tsx              ← テンプレートカード
+│   ├── builder/                      ← ← NEW ビルダーコンポーネント
+│   │   ├── FlowCanvas.tsx            ← React Flowキャンバス
+│   │   ├── BuilderHeader.tsx         ← ヘッダー（保存・実行・トグル）
+│   │   ├── BuilderSidebar.tsx        ← 左ナビサイドバー
+│   │   ├── RunResultModal.tsx        ← 実行結果モーダル
+│   │   ├── nodes/
+│   │   │   ├── StepNode.tsx          ← ステップカードノード
+│   │   │   └── AddNode.tsx           ← 「＋」追加ボタンノード
+│   │   └── panels/
+│   │       ├── StepConfigPanel.tsx   ← 右設定パネル
+│   │       └── PieceSelector.tsx     ← アプリ選択モーダル
 │   └── ...（既存コンポーネント）
 │
 ├── data/
 │   └── templates.ts                  ← ワークフローテンプレート定義
 │
-├── lib/                              ← コアロジック（変更禁止が多い）
+├── lib/
+│   ├── providers/                    ← ← NEW プロバイダー定義
+│   │   ├── types.ts                  ← 全型定義
+│   │   └── registry.ts              ← Gmail/Slack/AI等のプロバイダー
+│   ├── stores/                       ← ← NEW Zustand状態管理
+│   │   └── builderStore.ts           ← ビルダーUI状態
+│   ├── workflows/                    ← ← NEW ワークフロー管理
+│   │   ├── store.ts                  ← グローバルシングルトンストア
+│   │   └── workflowDb.ts             ← （旧）モックデータ（store.tsに統合済み）
 │   ├── auth.ts                       ← 変更禁止
 │   ├── supabase.ts                   ← 変更禁止
 │   ├── nango.ts                      ← 変更禁止
@@ -188,6 +224,37 @@ git push origin main  # 本番デプロイ（Vercel自動）
 2. **テンプレートドリブン** — `data/templates.ts` に追加するだけで機能拡張
 3. **テナントを意識する** — すべての処理で `tenant_id` を持たせる
 4. **黒 + オレンジで統一** — デザイン一貫性を崩さない
+
+---
+
+## 重要: ビルダー開発時の注意点
+
+### API状態管理はシングルトンで
+```typescript
+// ✅ 正しい: lib/workflows/store.ts を使う
+import { workflowsStore, runsStore } from '@/lib/workflows/store'
+
+// ❌ NG: 各APIルートでlet workflows = []のようなローカル変数を使う
+//    → Hot reloadや別ルートとの間で状態が共有されない
+```
+
+### ビルダーの状態はZustandで
+```typescript
+// lib/stores/builderStore.ts の useBuilderStore を参照
+const { workflow, selectStep, selectedStepId, addStep } = useBuilderStore()
+```
+
+### プロバイダーの追加
+```typescript
+// lib/providers/registry.ts の providers配列に追加するだけ
+// ProviderDefinition 型に従って定義する
+```
+
+### Supabase連携に切り替える時
+```typescript
+// lib/workflows/store.ts の workflowsStore / runsStore の実装を
+// Supabaseクエリに差し替えるだけでAPIルートは変更不要
+```
 
 ---
 

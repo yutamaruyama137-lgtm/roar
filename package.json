@@ -14,6 +14,7 @@
     "@nangohq/frontend": "^0.69.47",
     "@nangohq/node": "^0.69.47",
     "@supabase/supabase-js": "^2.101.1",
+    "@xyflow/react": "^12.10.2",
     "clsx": "^2.1.1",
     "docx": "^9.6.1",
     "docxtemplater": "^3.68.3",
