@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Nango from "@nangohq/frontend"
 import { WorkflowTemplate } from "@/data/templates"
 
 interface Message {
@@ -45,6 +46,7 @@ export default function SetupChat({ template }: Props) {
   const [connectedServices, setConnectedServices] = useState<Set<string>>(
     new Set()
   )
+  const [connectingService, setConnectingService] = useState<string | null>(null)
 
   const currentQuestion = template.setupQuestions[currentStep]
   const isLastStep = currentStep === template.setupQuestions.length - 1
@@ -79,14 +81,50 @@ export default function SetupChat({ template }: Props) {
     setTextInput("")
   }
 
-  function handleServiceConnect(service: string) {
-    setConnectedServices((prev) => {
-      const next = new Set<string>()
-      prev.forEach((s) => next.add(s))
-      next.add(service)
-      return next
-    })
-    handleAnswer(`${SERVICE_LABELS[service] ?? service} を連携しました`)
+  async function handleServiceConnect(service: string) {
+    setConnectingService(service)
+    try {
+      // 1. サーバーからNangoセッショントークンを取得
+      const res = await fetch("/api/nango/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ integration: service }),
+      })
+      const data = await res.json() as { token?: string; error?: string }
+
+      if (!data.token) {
+        throw new Error(data.error ?? "セッショントークンの取得に失敗しました")
+      }
+
+      // 2. Nango Connect UIを開く
+      const nango = new Nango({ connectSessionToken: data.token })
+      await nango.openConnectUI({
+        onEvent: (event: { type: string }) => {
+          if (event.type === "close") {
+            setConnectingService(null)
+          }
+        },
+      })
+
+      // 3. 連携成功 → チャットを次のステップへ
+      setConnectedServices((prev) => {
+        const next = new Set(prev)
+        next.add(service)
+        return next
+      })
+      handleAnswer(`${SERVICE_LABELS[service] ?? service} を連携しました`)
+    } catch (err) {
+      console.error("[connect] error:", err)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "ai",
+          content: `連携中にエラーが発生しました: ${err instanceof Error ? err.message : "もう一度お試しください"}`,
+        },
+      ])
+    } finally {
+      setConnectingService(null)
+    }
   }
 
   async function handleLaunch() {
@@ -198,12 +236,22 @@ export default function SetupChat({ template }: Props) {
                 ) : (
                   <button
                     onClick={() => handleServiceConnect(currentQuestion.service!)}
-                    className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 hover:border-orange-500 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-all"
+                    disabled={connectingService === currentQuestion.service}
+                    className="flex items-center gap-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-60 disabled:cursor-not-allowed border border-zinc-700 hover:border-orange-500 text-white font-semibold px-5 py-3 rounded-xl text-sm transition-all"
                   >
-                    <span className="text-xl">
-                      {SERVICE_ICONS[currentQuestion.service] ?? "🔗"}
-                    </span>
-                    {SERVICE_LABELS[currentQuestion.service] ?? currentQuestion.service} を連携する
+                    {connectingService === currentQuestion.service ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        連携中...
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xl">
+                          {SERVICE_ICONS[currentQuestion.service] ?? "🔗"}
+                        </span>
+                        {SERVICE_LABELS[currentQuestion.service] ?? currentQuestion.service} を連携する
+                      </>
+                    )}
                   </button>
                 )}
               </div>
