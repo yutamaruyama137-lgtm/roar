@@ -6,24 +6,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#FFFDF7" }}>
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-10 w-full max-w-sm text-center">
-        {/* JARVISロゴ */}
-        <div className="flex items-center justify-center gap-1 mb-2">
-          {["J", "A", "R", "V", "I", "S"].map((letter, i) => {
-            const colors = [
-              "bg-orange-500", "bg-blue-500", "bg-purple-500",
-              "bg-teal-500", "bg-rose-500", "bg-amber-500",
-            ];
-            return (
-              <div
-                key={letter}
-                className={`w-8 h-8 ${colors[i]} rounded-lg flex items-center justify-center text-white font-black text-sm`}
-              >
-                {letter}
-              </div>
-            );
-          })}
+        {/* ROARロゴ */}
+        <div className="flex items-center justify-center mb-2">
+          <span className="text-3xl font-black bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent tracking-widest">
+            ROAR
+          </span>
         </div>
-        <p className="text-xs text-gray-400 font-medium mb-8">AI社員サービス by REQS Lab</p>
+        <p className="text-xs text-gray-400 font-medium mb-8">ワークフロー自動化 by REQS Lab</p>
 
         <h1 className="text-xl font-black text-gray-800 mb-2">ログイン</h1>
         <p className="text-sm text-gray-500 mb-8">
