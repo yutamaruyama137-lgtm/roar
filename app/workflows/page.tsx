@@ -112,8 +112,9 @@ export default function WorkflowsPage() {
               if (!template) return null
 
               return (
-                <div
+                <Link
                   key={workflow.id}
+                  href={`/workflows/${workflow.id}`}
                   className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex items-center gap-6 hover:border-zinc-700 transition-colors"
                 >
                   {/* Icon */}
@@ -172,7 +173,7 @@ export default function WorkflowsPage() {
                       </svg>
                     </button>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
