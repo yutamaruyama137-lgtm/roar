@@ -1,24 +1,12 @@
 import Link from "next/link"
 import WorkflowCard from "@/components/WorkflowCard"
+import Header from "@/components/Header"
 import { templates } from "@/data/templates"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Header */}
-      <header className="border-b border-zinc-800/60 sticky top-0 z-50 bg-black/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <span className="text-2xl font-black bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text text-transparent tracking-tight">
-            ROAR
-          </span>
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-4 py-2 rounded-lg transition-all"
-          >
-            ログイン
-          </Link>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="flex-1 flex flex-col items-center justify-center text-center px-6 pt-24 pb-16">
